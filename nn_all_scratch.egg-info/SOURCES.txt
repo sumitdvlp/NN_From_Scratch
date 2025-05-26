@@ -1,0 +1,15 @@
+LICENSE
+setup.py
+all_scratch/__init__.py
+all_scratch/runner.py
+all_scratch/arch/__init__.py
+all_scratch/arch/cnn.py
+all_scratch/arch/logisticregression.py
+all_scratch/data_setup/__init__.py
+all_scratch/data_setup/minst_dataset.py
+all_scratch/data_setup/minst_openml.py
+nn_all_scratch.egg-info/PKG-INFO
+nn_all_scratch.egg-info/SOURCES.txt
+nn_all_scratch.egg-info/dependency_links.txt
+nn_all_scratch.egg-info/requires.txt
+nn_all_scratch.egg-info/top_level.txt

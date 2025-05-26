@@ -5,41 +5,46 @@ import torchvision.datasets as dsets
 import torch
 
 class MNISTDataset:
-    def __init__(self,  download=True):
+    def __init__(self,download=False, root='./data'):
         self.root = root
-        self.train = train
-        self.download = download
+
+        # Define the transformation to convert images to tensors
         self.transform = transforms.ToTensor()
-        self.dataset = dsets.MNIST(root=self.root,
-                                   train=self.train,
-                                   transform=self.transform,
-                                   download=self.download)
-        self.train_dataset = dsets.MNIST(root='./data',
+        # Load the MNIST dataset
+        self.train_dataset = dsets.MNIST(root=self.root,
                             train=True,
                             transform=transforms.ToTensor(),
                             download=True)
-        self.test_dataset = dsets.MNIST(root='./data',
+        self.test_dataset = dsets.MNIST(root=self.root,
                             train=False,
                             transform=transforms.ToTensor(),
                             download=True)
-        
-        self.dataset_size = len(self.dataset)
-        self.num_classes = len(self.dataset.classes)
-        self.input_shape = self.dataset[0][0].shape
+        self.num_classes = self.train_dataset.classes.__len__()
+        self.num_samples = len(self.train_dataset)
+        self.dataset_size = len(self.train_dataset)
+        # Print dataset information
+        print(f'Train dataset size: {self.train_dataset.data.shape}')
+        print(f'Test dataset size: {self.test_dataset.data.shape}')
+        print(f'Number of classes: {self.num_classes}')
+        # Set input and output shapes
+        self.input_shape = self.train_dataset[0][0].shape
         self.output_shape = (self.num_classes,)
-    def __len__(self):
-        return self.dataset_size
-    def __getitem__(self, idx):
-        return self.dataset[idx]
-    def get_input_shape(self):
-        return self.input_shape
-    def get_output_shape(self):
-        return self.output_shape
-    def get_loader(self, batch_size=64, shuffle=True):
-        return torch.utils.data.DataLoader(dataset=self.dataset,
-                                           batch_size=batch_size,
-                                           shuffle=shuffle)
+        print(f'Input shape: {self.input_shape}')
+        print(f'Output shape: {self.output_shape}')
+
     def getTestTrainDatasets(self):
         return self.train_dataset, self.test_dataset
+    
+    def getTestTrainLoaders(self, batch_size=100):
+        """
+        Returns the train and test dataloaders.
+        """
+        train_loader = torch.utils.data.DataLoader(dataset=self.train_dataset,
+                                                   batch_size=batch_size,
+                                                   shuffle=True)
+        test_loader = torch.utils.data.DataLoader(dataset=self.test_dataset,
+                                                  batch_size=batch_size,
+                                                  shuffle=False)
+        return train_loader, test_loader
 
 
