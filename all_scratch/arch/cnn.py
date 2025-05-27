@@ -1,14 +1,16 @@
 import torch
 
 class ConvolutionalLayer:
-    def __init__(self, num_kernels, kernel_shape):
+    def __init__(self, in_channels=1, out_channels=4, kernel_size=5, stride=1, padding=None):
         # Number of kernels: 1D
-        self.num_kernels = num_kernels
+        self.out_channels = out_channels
         # Shape of kernels: 2D
-        self.kernel_shape = kernel_shape
-        self.k = self.kernel_shape[0]
+        # Kernal is Square shape
+        self.kernel_size = kernel_size
+        self.padding = padding
+        self.stride = stride
         # Kernel weights: 3D
-        self.kernels_theta = torch.randn(self.num_kernels, self.kernel_shape[0], self.kernel_shape[1])
+        self.kernels_theta = torch.randn(self.out_channels, self.kernel_size, self.kernel_size)
 
     def slider(self, inp):
         '''
@@ -17,9 +19,11 @@ class ConvolutionalLayer:
         This assumes valid padding (no padding) and step size 1.
         '''
         h, w = inp.shape
-        for h_idx in range(h - (self.k - 1)):
-            for w_idx in range(w - (self.k - 1)):
-                single_slide_area = inp[h_idx:(h_idx + self.k), w_idx:(w_idx + self.k)]
+        # Slide across height
+        for h_idx in range(0,h - (self.kernel_size - 1), self.stride):
+            # Slide across width
+            for w_idx in range(0, w - (self.kernel_size - 1), self.stride):
+                single_slide_area = inp[h_idx:(h_idx + self.kernel_size), w_idx:(w_idx + self.kernel_size)]
                 yield single_slide_area, h_idx,w_idx
 
     def forward(self, inp):
@@ -36,12 +40,12 @@ class ConvolutionalLayer:
         # P = 0
         p = 0
         # O = ((W - K + 2P) / S) + 1 = (28 - 3 + 0) + 1 = 25
-        o = (w - self.k) + 1
+        o = (w - self.kernel_size) + 1
         # Print shapes
         print('Padding shape: \t', p)
         print('Output shape: \t', o)
         # Initialize blank tensor
-        output = torch.zeros((o, o, self.num_kernels))
+        output = torch.zeros((o, o, self.out_channels))
 
         # Iterate through region
         for single_slide_area, h_idx, w_idx in self.slider(inp):
@@ -62,21 +66,21 @@ class ConvolutionalLayer:
 
 class MaxPoolLayer:
     # O = ((W - K) / S) + 1
-    def __init__(self, pooling_kernel_shape):
+    def __init__(self, kernel_size):
         # Assume simplicity of K = S then O = W / S
-        self.k = pooling_kernel_shape
+        self.kernel_size = kernel_size
 
     def slider(self, inp):
         '''
         Sliding generator that yields areas for max pooling.
         '''
         h, w, _ = inp.shape
-        output_size = int(w / self.k)  # Assume S = K
+        output_size = int(w / self.kernel_size)  # Assume S = K
 
         for h_idx in range(output_size):
             for w_idx in range(output_size):
-                single_slide_area = inp[h_idx * self.k:h_idx * self.k + self.k,
-                                        w_idx * self.k:w_idx * self.k + self.k]
+                single_slide_area = inp[h_idx * self.kernel_size:h_idx * self.kernel_size + self.kernel_size,
+                                        w_idx * self.kernel_size:w_idx * self.kernel_size + self.kernel_size]
                 yield single_slide_area, h_idx, w_idx
 
     def forward(self, inp):
@@ -88,7 +92,7 @@ class MaxPoolLayer:
         self.last_input = inp
 
         h, w, num_kernels = inp.shape
-        output_size = int(w / self.k)  # Assume S = K
+        output_size = int(w / self.kernel_size)  # Assume S = K
         output = torch.zeros(output_size, output_size, num_kernels)
 
         for single_slide_area, h_idx, w_idx in self.slider(inp):
