@@ -3,6 +3,7 @@ import torch
 class ConvolutionalLayer:
     def __init__(self, in_channels=1, out_channels=4, kernel_size=5, stride=1, padding=None):
         # Number of kernels: 1D
+        ## Kernel is Square shape slider will slide across input with fixed kernel size shape
         self.out_channels = out_channels
         # Shape of kernels: 2D
         # Kernal is Square shape
@@ -12,18 +13,18 @@ class ConvolutionalLayer:
         # Kernel weights: 3D
         self.kernels_theta = torch.randn(self.out_channels, self.kernel_size, self.kernel_size)
 
-    def slider(self, inp):
+    def slider(self, indx,channel, inp):
         '''
         Sliding generator that yields square areas of shape
         (kernel_shape, kernel_shape) sliding across our input. 
         This assumes valid padding (no padding) and step size 1.
         '''
-        h, w = inp.shape
+        _,_, h, w = inp.shape
         # Slide across height
-        for h_idx in range(0,h - (self.kernel_size - 1), self.stride):
+        for h_idx in range(0,h - (self.kernel_size - 1)):
             # Slide across width
-            for w_idx in range(0, w - (self.kernel_size - 1), self.stride):
-                single_slide_area = inp[h_idx:(h_idx + self.kernel_size), w_idx:(w_idx + self.kernel_size)]
+            for w_idx in range(0, w - (self.kernel_size - 1)):
+                single_slide_area = inp[indx][channel][h_idx:(h_idx + self.kernel_size), w_idx:(w_idx + self.kernel_size)]
                 yield single_slide_area, h_idx,w_idx
 
     def forward(self, inp):
@@ -36,7 +37,7 @@ class ConvolutionalLayer:
         # assert single_sample.dim() == 2, f'Input not 2D, given {single_sample.dim()}D'
 
         # Output via Valid Padding (No Padding): 3D of (height, width, number of kernels)
-        _, w  = inp.shape
+        batch_num,in_channel,in_h, w  = inp.shape
         # P = 0
         p = 0
         # O = ((W - K + 2P) / S) + 1 = (28 - 3 + 0) + 1 = 25
@@ -45,23 +46,37 @@ class ConvolutionalLayer:
         print('Padding shape: \t', p)
         print('Output shape: \t', o)
         # Initialize blank tensor
-        output = torch.zeros((o, o, self.out_channels))
+        output = torch.zeros((batch_num, self.out_channels,o, o))
+        for i in range(batch_num): 
+            # Iterate through region
+            # Iterate through each channel
+            for channel in range(in_channel):
+                actual_tensor = torch.zeros((o, o, self.out_channels))
+                for single_slide_area, h_idx, w_idx in self.slider(i, channel, inp):
+                    if h_idx == 0 and w_idx == 0:
+                        print('Region shape: \t', list(single_slide_area.shape))
+                        print('Kernel shape: \t', list(self.kernels_theta.shape))
+                        print('Single Slide: \t', list(output[h_idx, w_idx].shape))
 
-        # Iterate through region
-        for single_slide_area, h_idx, w_idx in self.slider(inp):
-            if h_idx == 0 and w_idx == 0:
-                print('Region shape: \t', list(single_slide_area.shape))
-                print('Kernel shape: \t', list(self.kernels_theta.shape))
-                print('Single Slide: \t', list(output[h_idx, w_idx].shape))
+                    # Sum values with each element-wise matrix multiplication across each kernel
+                    # Instead of doing another loop of each kernel, you simply just do a element-wise MM
+                    # of the single slide area with all the kernels yield, then summing the patch
+                    actual_tensor[h_idx, w_idx] = torch.sum(single_slide_area * self.kernels_theta, dim=(1, 2))
 
-            # Sum values with each element-wise matrix multiplication across each kernel
-            # Instead of doing another loop of each kernel, you simply just do a element-wise MM
-            # of the single slide area with all the kernels yield, then summing the patch
-            output[h_idx, w_idx] = torch.sum(single_slide_area * self.kernels_theta, axis=(1, 2))
+                    # Pass through non-linearity (sigmoid): 1 / 1 + exp(-output)
+                    # actual_tensor = 1. / (1. + torch.exp(-actual_tensor))
+                # Assign to output tensor
+                # Transpose to (out_channels, o, o)
+                # where o = ((W - K + 2P) / S) + 1
+                # where W = width, K = kernel size, P = padding, S = stride
+                # where o = (28 - 5 + 0) / 1 + 1 = 24
 
-        # Pass through non-linearity (sigmoid): 1 / 1 + exp(-output)
-        output = 1. / (1. + torch.exp(-output))
 
+            output[i] = actual_tensor.transpose(0,2)
+        print(f'Output shape: \t {list(output.shape)}')
+        # Return output of shape (batch_num, out_channels, o, o)
+        # where o = ((W - K + 2P) / S) + 1
+        # where W = width, K = kernel size, P = padding, S = stride
         return output
 
 class MaxPoolLayer:
@@ -74,7 +89,7 @@ class MaxPoolLayer:
         '''
         Sliding generator that yields areas for max pooling.
         '''
-        h, w, _ = inp.shape
+        h, w = inp.shape
         output_size = int(w / self.kernel_size)  # Assume S = K
 
         for h_idx in range(output_size):
@@ -91,14 +106,25 @@ class MaxPoolLayer:
         '''
         self.last_input = inp
 
-        h, w, num_kernels = inp.shape
+        batch, num_kernels,h, w  = inp.shape
         output_size = int(w / self.kernel_size)  # Assume S = K
-        output = torch.zeros(output_size, output_size, num_kernels)
+        output = torch.zeros(batch, num_kernels, output_size, output_size)
 
-        for single_slide_area, h_idx, w_idx in self.slider(inp):
-            single_slide_area = torch.flatten(single_slide_area, start_dim=0, end_dim=1)
-            output[h_idx, w_idx] = torch.max(single_slide_area, dim=0).values
-
+        # Iterate through each batch
+        for i in range(batch):
+            temp = torch.zeros(( output_size, output_size, num_kernels))
+            # Iterate through each kernel
+            for channel in range(num_kernels):
+                # Iterate through each region
+                # For each region, find the max value and assign to output
+                # Use the slider to yield areas of shape (kernel_size, kernel_size)
+                for single_slide_area, h_idx, w_idx in self.slider(inp[i][channel]):
+                    # single_slide_area: (kernel_size, kernel_size)
+                    single_slide_area = torch.flatten(single_slide_area, start_dim=0, end_dim=1)
+                    temp[h_idx, w_idx] = torch.max(single_slide_area, dim=0).values
+            # Assign to output tensor
+            output[i] = temp.transpose(0, 2)
+        # Return output of shape (batch, h / 2, w / 2, num_kernels)
         return output
 
 class AffineAndSoftmaxLayer:
