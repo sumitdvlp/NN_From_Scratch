@@ -35,7 +35,7 @@ class MNISTDataset:
     def getTestTrainDatasets(self):
         return self.train_dataset, self.test_dataset
     
-    def getTestTrainLoaders(self, batch_size=100):
+    def getTestTrainLoaders(self, batch_size=1):
         """
         Returns the train and test dataloaders.
         """

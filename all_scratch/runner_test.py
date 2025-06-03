@@ -1,11 +1,13 @@
 
 from data_setup import minst_dataset as dsets
 import unittest
-from all_scratch.arch import cnn as cnn
-from loss import common_loss as loss
+from all_scratch.arch import cnn_modules as cnn_modules
+from utils import common_loss 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from arch import neuralnets as nnets
+from utils import optimizers as optimizers
 
 class TestAllScratch(unittest.TestCase):
     def test_CNN(self):
@@ -78,10 +80,10 @@ class TestAllScratch(unittest.TestCase):
 
             # Forward: conv
             # Scratch Layer
-            conv = cnn.ConvolutionalLayer(in_channels=1, out_channels=6, kernel_size=5, stride=1)
+            conv = cnn_modules.ConvolutionalLayer(in_channels=1, out_channels=6, kernel_size=5, stride=1)
             output = conv.forward(images)
             print('=*'*50)
-            # print(f'Conv (f) shape: \t {list(output.shape)}')
+            print(f'Conv (f) shape: \t {list(output.shape)}')
             print('=*'*50)
             # Pytorch Layer
             pycnn1 = nn.Conv2d(in_channels=1, out_channels=6, kernel_size=5, stride=1, padding=0)
@@ -89,7 +91,7 @@ class TestAllScratch(unittest.TestCase):
             print('=*'*50)
             print(f'Pytorch Conv (f) shape: \t {list(out.shape)}')
             print('=*'*50)
-            # assert torch.allclose(output, out.squeeze(0), atol=1e-6), "Output mismatch between custom and PyTorch Conv implementation"
+            assert (list(output.shape) == list(out.shape)), "Output mismatch between custom and PyTorch Conv implementation"
 
             # Forward: ReLU
             relu1 = loss.Activation_ReLU()
@@ -103,10 +105,10 @@ class TestAllScratch(unittest.TestCase):
             print('=*'*50)
             print(f'Pytorch ReLu1 (f) shape: \t {list(out.shape)}')
             print('=*'*50)
-            # assert torch.allclose(output, out.squeeze(0), atol=1e-6), "Output mismatch between custom and PyTorch Relu implementation"
+            assert (list(output.shape) == list(out.shape)), "Output mismatch between custom and PyTorch ReLU implementation"
 
             # Forward: Maxpool
-            pool = cnn.MaxPoolLayer(kernel_size=2)
+            pool = cnn_modules.MaxPoolLayer(kernel_size=2)
             output = pool.forward(output)
             print('=*'*50)
             print(f'Maxpool output shape: \t {list(output.shape)}')
@@ -116,11 +118,11 @@ class TestAllScratch(unittest.TestCase):
             print('=*'*50)
             print(f'Pytorch MaxPool (f) shape: \t {list(out.shape)}')
             print('=*'*50)
-
+            assert (list(output.shape) == list(out.shape)), "Output mismatch between custom and PyTorch MaxPool implementation"
 
 
             # Forward: Affine and Softmax
-            affinesoftmax = cnn.AffineAndSoftmaxLayer(affine_weight_shape=(output.shape[1], output.shape[2], output.shape[3], len(torch.unique(y_train))))
+            affinesoftmax = cnn_modules.AffineAndSoftmaxLayer(affine_weight_shape=(output.shape[1], output.shape[2], output.shape[3], len(torch.unique(y_train))))
             output = affinesoftmax.forward(output)
 
             print('='*50)
@@ -136,10 +138,40 @@ class TestAllScratch(unittest.TestCase):
             out = self.affine_softmax(out)
             print('='*50)
             print(f'Pytorch Affine & Soft(arg)max (f) shape: \t {list(out.shape)}')
+            print('='*50)
+            assert list(output.shape)== list(out.shape) , "Output mismatch between custom and PyTorch Affine & Softmax implementation"
+            
             break
 
     def test_CNN_Modules(self):
         test_loader, train_loader = setup_data()
+        """
+        Test class for CNN Modules.
+        """
+        model = nnets.ConvNN()
+        
+        loss = common_loss.CrossEntropyLoss()
+        
+        optimizer = optimizers.CustomAdam(model.parameters(), stepsize=0.001, bias_m1=0.9, bias_m2=0.999, epsilon=10e-8, bias_correction=False)
+
+        for _, (images, labels) in enumerate(train_loader): 
+                model.zero_grad()
+                pred = model.forward(images)
+                ls = loss.forward(pred, labels)
+                print('='*50)
+                print(f'Loss: \t {ls.item()}')
+                print('='*50)
+                # Backward pass
+                optimizer.step()
+                # model.zero_grad()
+
+    def test_load(self):
+         test_loader, train_loader = setup_data()
+         for batch_idx, (inputs, labels) in enumerate(test_loader):
+            # inputs is a tensor of input features for the current batch
+            # labels is a tensor of corresponding labels for the current batch
+            print(f"Batch: {batch_idx}, Input shape: {inputs.shape}, Label shape: {labels.shape}")
+
 
         
 
@@ -147,8 +179,8 @@ seed_value=42
 torch.manual_seed(seed_value)
 ## Setup data
 def setup_data():
-    batch_size = 1
-    n_iters = 3000
+    batch_size = 15
+    n_iters = 12
     dataset = dsets.MNISTDataset()
     train_dataset, test_dataset = dataset.getTestTrainDatasets()
     

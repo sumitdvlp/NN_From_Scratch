@@ -1,7 +1,10 @@
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
 
-class ConvolutionalLayer:
+class ConvolutionalLayer(nn.Module):
     def __init__(self, in_channels=1, out_channels=4, kernel_size=5, stride=1, padding=None):
+        super(ConvolutionalLayer, self).__init__()
         # Number of kernels: 1D
         ## Kernel is Square shape slider will slide across input with fixed kernel size shape
         self.out_channels = out_channels
@@ -11,7 +14,7 @@ class ConvolutionalLayer:
         self.padding = padding
         self.stride = stride
         # Kernel weights: 3D
-        self.kernels_theta = torch.randn(self.out_channels, self.kernel_size, self.kernel_size)
+        self.kernels_theta = nn.Parameter(torch.randn(self.out_channels, self.kernel_size, self.kernel_size))
 
     def slider(self, indx,channel, inp):
         '''
@@ -43,8 +46,8 @@ class ConvolutionalLayer:
         # O = ((W - K + 2P) / S) + 1 = (28 - 3 + 0) + 1 = 25
         o = (w - self.kernel_size) + 1
         # Print shapes
-        print('Padding shape: \t', p)
-        print('Output shape: \t', o)
+        # print('Padding shape: \t', p)
+        # print('Output shape: \t', o)
         # Initialize blank tensor
         output = torch.zeros((batch_num, self.out_channels,o, o))
         for i in range(batch_num): 
@@ -53,10 +56,6 @@ class ConvolutionalLayer:
             for channel in range(in_channel):
                 actual_tensor = torch.zeros((o, o, self.out_channels))
                 for single_slide_area, h_idx, w_idx in self.slider(i, channel, inp):
-                    if h_idx == 0 and w_idx == 0:
-                        print('Region shape: \t', list(single_slide_area.shape))
-                        print('Kernel shape: \t', list(self.kernels_theta.shape))
-                        print('Single Slide: \t', list(output[h_idx, w_idx].shape))
 
                     # Sum values with each element-wise matrix multiplication across each kernel
                     # Instead of doing another loop of each kernel, you simply just do a element-wise MM
@@ -79,9 +78,16 @@ class ConvolutionalLayer:
         # where W = width, K = kernel size, P = padding, S = stride
         return output
 
-class MaxPoolLayer:
+class MaxPoolLayer(nn.Module):
     # O = ((W - K) / S) + 1
     def __init__(self, kernel_size):
+        super(MaxPoolLayer, self).__init__()
+        '''
+        Max Pooling Layer that performs max pooling operation.
+        - kernel_size: Size of the square kernel to slide across the input.
+        - stride: Step size for sliding the kernel across the input.
+        - padding: Padding applied to the input before pooling.
+        '''
         # Assume simplicity of K = S then O = W / S
         self.kernel_size = kernel_size
 
@@ -127,29 +133,39 @@ class MaxPoolLayer:
         # Return output of shape (batch, h / 2, w / 2, num_kernels)
         return output
 
-class AffineAndSoftmaxLayer:
+class AffineAndSoftmaxLayer(nn.Module):
+    '''
+    Affine Layer that performs a linear transformation followed by a softmax activation.
+    - affine_weight_shape: Shape of the weight matrix for the affine transformation.
+    '''
     def __init__(self, affine_weight_shape):
+        super(AffineAndSoftmaxLayer, self).__init__()
+        '''
+        Initializes the Affine Layer with the given weight shape.
+        - affine_weight_shape: Shape of the weight matrix for the affine transformation.
+        '''
         self.affine_weight_shape = affine_weight_shape
         # Weight shape: flattened input x output shape
-        self.w = torch.zeros(self.affine_weight_shape[0] * self.affine_weight_shape[1] * self.affine_weight_shape[2], self.affine_weight_shape[3])
-        self.b = torch.zeros(self.affine_weight_shape[3])
+        self.w = nn.Parameter(torch.zeros(self.affine_weight_shape[0] * self.affine_weight_shape[1] * self.affine_weight_shape[2], self.affine_weight_shape[3]))
+        self.b = nn.Parameter(torch.zeros(self.affine_weight_shape[3]))
 
         # Initialize weight/bias via Lecun initialization of 1 / N standard deviation
         # Refer to DLW guide on weight initialization mathematical derivation:
         # https://www.deeplearningwizard.com/deep_learning/boosting_models_pytorch/weight_initialization_activation_functions/
         print(f'Lecun initialization SD: {1/self.affine_weight_shape[3]}')
-        self.w = torch.nn.init.normal_(self.w, mean=0, std=1/self.affine_weight_shape[3])
-        self.b = torch.nn.init.normal_(self.b, mean=0, std=1/self.affine_weight_shape[3])
+        self.w = nn.Parameter(torch.nn.init.normal_(self.w, mean=0, std=1/self.affine_weight_shape[3]))
+        self.b = nn.Parameter(torch.nn.init.normal_(self.b, mean=0, std=1/self.affine_weight_shape[3]))
 
     def forward(self, inp):
         '''
         Performs Linear (Affine) Function & Soft(arg)max Function
         that returns our vector (1D) of probabilities.
         '''
+        
         inp = inp.reshape(1, -1)
-        print(f'input shape: \t {inp.shape}')
-        print(f'weight shape: \t {self.w.shape}')
-        print(f'bias shape: \t {self.b.shape}')
+        # print(f'input shape: \t {inp.shape}')
+        # print(f'weight shape: \t {self.w.shape}')
+        # print(f'bias shape: \t {self.b.shape}')
         logits = torch.mm(inp, self.w) + self.b
         probas = torch.exp(logits) / torch.sum(torch.exp(logits))
         return probas
