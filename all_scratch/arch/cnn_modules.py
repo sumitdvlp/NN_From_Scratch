@@ -161,11 +161,19 @@ class AffineAndSoftmaxLayer(nn.Module):
         Performs Linear (Affine) Function & Soft(arg)max Function
         that returns our vector (1D) of probabilities.
         '''
+        output = torch.zeros((inp.shape[0], self.affine_weight_shape[3]), dtype=inp.dtype, device=inp.device)
+        for i in range(inp.shape[0]):
+            # Flatten input to 1D
+            # print(f'input shape: \t {inp.shape}')
+            # print(f'weight shape: \t {self.w.shape}')
+            # print(f'bias shape: \t {self.b.shape}')
+            tmp = inp[i].reshape(1,-1)
+            logits = torch.mm(tmp, self.w) + self.b
+            probas = torch.exp(logits) / torch.sum(torch.exp(logits))
+            output[i] = probas
+        # Return output of shape (batch_size, num_classes)
+        return output
         
-        inp = inp.reshape(1, -1)
-        # print(f'input shape: \t {inp.shape}')
-        # print(f'weight shape: \t {self.w.shape}')
-        # print(f'bias shape: \t {self.b.shape}')
-        logits = torch.mm(inp, self.w) + self.b
-        probas = torch.exp(logits) / torch.sum(torch.exp(logits))
-        return probas
+
+        
+

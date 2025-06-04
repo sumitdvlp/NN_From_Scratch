@@ -8,7 +8,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from arch import neuralnets as nnets
 from utils import optimizers as optimizers
-
+import matplotlib.pyplot as plt
+a
 class TestAllScratch(unittest.TestCase):
     def test_CNN(self):
         """
@@ -140,8 +141,6 @@ class TestAllScratch(unittest.TestCase):
             print(f'Pytorch Affine & Soft(arg)max (f) shape: \t {list(out.shape)}')
             print('='*50)
             assert list(output.shape)== list(out.shape) , "Output mismatch between custom and PyTorch Affine & Softmax implementation"
-            
-            break
 
     def test_CNN_Modules(self):
         test_loader, train_loader = setup_data()
@@ -153,17 +152,19 @@ class TestAllScratch(unittest.TestCase):
         loss = common_loss.CrossEntropyLoss()
         
         optimizer = optimizers.CustomAdam(model.parameters(), stepsize=0.001, bias_m1=0.9, bias_m2=0.999, epsilon=10e-8, bias_correction=False)
-
+        loss_values = []
         for _, (images, labels) in enumerate(train_loader): 
                 model.zero_grad()
                 pred = model.forward(images)
                 ls = loss.forward(pred, labels)
                 print('='*50)
                 print(f'Loss: \t {ls.item()}')
+                loss_values.append(ls.item())
                 print('='*50)
                 # Backward pass
                 optimizer.step()
                 # model.zero_grad()
+                
 
     def test_load(self):
          test_loader, train_loader = setup_data()
@@ -179,8 +180,8 @@ seed_value=42
 torch.manual_seed(seed_value)
 ## Setup data
 def setup_data():
-    batch_size = 15
-    n_iters = 12
+    batch_size = 10
+    n_iters = 10
     dataset = dsets.MNISTDataset()
     train_dataset, test_dataset = dataset.getTestTrainDatasets()
     
