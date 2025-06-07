@@ -29,3 +29,13 @@ class CrossEntropyLoss(nn.Module):
         log_probs = self.log_softmax(inputs)
         loss = self.nll(log_probs, targets)
         return loss
+
+class Softmax(nn.Module):
+    def forward(self, x):
+        """
+        Forward pass of the Softmax activation function.
+        - x: Input tensor.
+        Returns the output tensor after applying the Softmax function.
+        """
+        exp_x = torch.exp(x - x.max(dim=-1, keepdim=True).values)
+        return exp_x / exp_x.sum(dim=-1, keepdim=True)

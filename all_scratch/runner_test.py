@@ -9,7 +9,7 @@ import torch.nn.functional as F
 from arch import neuralnets as nnets
 from utils import optimizers as optimizers
 import matplotlib.pyplot as plt
-a
+
 class TestAllScratch(unittest.TestCase):
     def test_CNN(self):
         """
@@ -95,7 +95,7 @@ class TestAllScratch(unittest.TestCase):
             assert (list(output.shape) == list(out.shape)), "Output mismatch between custom and PyTorch Conv implementation"
 
             # Forward: ReLU
-            relu1 = loss.Activation_ReLU()
+            relu1 = common_loss.Activation_ReLU()
             output = relu1.forward(output)
             print('=*'*50)
             print(f'ReLu1 (f) shape: \t {list(output.shape)}')
@@ -143,7 +143,7 @@ class TestAllScratch(unittest.TestCase):
             assert list(output.shape)== list(out.shape) , "Output mismatch between custom and PyTorch Affine & Softmax implementation"
 
     def test_CNN_Modules(self):
-        test_loader, train_loader = setup_data()
+        train_loader, test_loader = setup_data()
         """
         Test class for CNN Modules.
         """
@@ -167,7 +167,7 @@ class TestAllScratch(unittest.TestCase):
                 
 
     def test_load(self):
-         test_loader, train_loader = setup_data()
+         train_loader, test_loader = setup_data()
          for batch_idx, (inputs, labels) in enumerate(test_loader):
             # inputs is a tensor of input features for the current batch
             # labels is a tensor of corresponding labels for the current batch
