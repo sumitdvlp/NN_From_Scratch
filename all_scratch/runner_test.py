@@ -173,12 +173,28 @@ class TestAllScratch(unittest.TestCase):
                 # Backward pass
                 optimizer.step()
                 # model.zero_grad()
-                if iter % 50 == 0:
-                    break
-        watcher = ww.WeightWatcher(model)
-        details = watcher.analyze(plot=True)
-        print('='*50)
-        print(f'WeightWatcher details: \n{details}')
+                # if iter % 500 == 0:
+                break
+                if iter % 100 == 0:
+                    # Calculate Accuracy
+                    correct = 0
+                    total = 0
+                    # Iterate through test dataset
+                    for images, labels in test_loader:
+                        # Load images to tensors with gradient accumulation abilities
+                        images = images.requires_grad_()
+                        # Forward pass only to get logits/output
+                        print('test image size',images.shape)
+                        outputs = model(images)
+                        # Get predictions from the maximum value
+                        _, predicted = torch.max(outputs.data, 1)
+                        # Total number of labels
+                        total += labels.size(0)
+                        # Total correct predictions
+                        correct += (predicted == labels).sum()
+                    accuracy = 100 * correct / total
+                    # Print Loss
+                    print('Iteration: {}. Loss: {}. Accuracy: {}'.format(iter, loss.item(), accuracy))
 
         # make_dot(model(images), params=dict(model.named_parameters()))
 
@@ -225,7 +241,6 @@ class TestAllScratch(unittest.TestCase):
                 if iter % 500 == 0:
                     break
 
-        make_dot(model(images), params=dict(model.named_parameters()))
 
 seed_value=42
 torch.manual_seed(seed_value)
