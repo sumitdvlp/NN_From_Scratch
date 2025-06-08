@@ -134,6 +134,61 @@ class MaxPoolLayer(nn.Module):
         # Return output of shape (batch, h / 2, w / 2, num_kernels)
         return output
 
+class AvgPoolLayer(nn.Module):
+    # O = ((W - K) / S) + 1
+    def __init__(self, kernel_size):
+        super(AvgPoolLayer, self).__init__()
+        '''
+        Avg Pooling Layer that performs Avg pooling operation.
+        - kernel_size: Size of the square kernel to slide across the input.
+        - stride: Step size for sliding the kernel across the input.
+        - padding: Padding applied to the input before pooling.
+        '''
+        # Assume simplicity of K = S then O = W / S
+        self.kernel_size = kernel_size
+
+    def slider(self, inp):
+        '''
+        Sliding generator that yields areas for Avg pooling.
+        '''
+        h, w = inp.shape
+        output_size = int(w / self.kernel_size)  # Assume S = K
+
+        for h_idx in range(output_size):
+            for w_idx in range(output_size):
+                single_slide_area = inp[h_idx * self.kernel_size:h_idx * self.kernel_size + self.kernel_size,
+                                        w_idx * self.kernel_size:w_idx * self.kernel_size + self.kernel_size]
+                yield single_slide_area, h_idx, w_idx
+
+    def forward(self, inp):
+        '''
+        Performs a forward pass of the Avgpool layer using the given input.
+        Returns a 3d numpy array with dimensions (h / 2, w / 2, num_filters).
+        - input is a 3d numpy array with dimensions (h, w, num_filters)
+        '''
+        self.last_input = inp
+
+        batch, num_kernels,h, w  = inp.shape
+        output_size = int(w / self.kernel_size)  # Assume S = K
+        output = torch.zeros(batch, num_kernels, output_size, output_size)
+
+        # Iterate through each batch
+        for i in range(batch):
+            temp = torch.zeros(( output_size, output_size, num_kernels))
+            # Iterate through each kernel
+            for channel in range(num_kernels):
+                # Iterate through each region
+                # For each region, find the Avg value and assign to output
+                # Use the slider to yield areas of shape (kernel_size, kernel_size)
+                for single_slide_area, h_idx, w_idx in self.slider(inp[i][channel]):
+                    # single_slide_area: (kernel_size, kernel_size)
+                    single_slide_area = torch.flatten(single_slide_area, start_dim=0, end_dim=1)
+                    temp[h_idx, w_idx] = torch.Avg(single_slide_area, dim=0).values
+            # Assign to output tensor
+            output[i] = temp.transpose(0, 2)
+        # Return output of shape (batch, h / 2, w / 2, num_kernels)
+        return output
+
 class AffineAndSoftmaxLayer(nn.Module):
     '''
     Affine Layer that performs a linear transformation followed by a softmax activation.

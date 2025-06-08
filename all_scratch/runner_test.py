@@ -10,6 +10,7 @@ from arch import neuralnets as nnets
 from utils import optimizers as optimizers
 import matplotlib.pyplot as plt
 import weightwatcher as ww
+from torchviz import make_dot, make_dot_from_trace
 
 class TestAllScratch(unittest.TestCase):
     def test_CNN(self):
@@ -179,6 +180,8 @@ class TestAllScratch(unittest.TestCase):
         print('='*50)
         print(f'WeightWatcher details: \n{details}')
 
+        # make_dot(model(images), params=dict(model.named_parameters()))
+
     def test_load(self):
          train_loader, test_loader = setup_data()
          for batch_idx, (inputs, labels) in enumerate(test_loader):
@@ -219,10 +222,10 @@ class TestAllScratch(unittest.TestCase):
                 # Backward pass
                 optimizer.step()
                 # model.zero_grad()
-                if iter % 50 == 0:
+                if iter % 500 == 0:
                     break
 
-        
+        make_dot(model(images), params=dict(model.named_parameters()))
 
 seed_value=42
 torch.manual_seed(seed_value)

@@ -86,3 +86,7 @@ class FeedForwardNeuralNetworkModel(nn.Module):
     return f"FeedForwardNeuralNetworkModel(input_dim={self.fc1.in_features}, hidden_dim={self.fc1.out_features}, output_dim={self.fc2.out_features})"
   def __str__(self):
     return f"FeedForwardNeuralNetworkModel(input_dim={self.fc1.in_features}, hidden_dim={self.fc1.out_features}, output_dim={self.fc2.out_features})"
+
+class ResidualBlock(nn.Module):
+    def __init__(self, in_channels, out_channels, stride = 1, downsample = None):
+        super(ResidualBlock, self).__init__()
