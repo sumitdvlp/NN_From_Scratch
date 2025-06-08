@@ -4,34 +4,22 @@ from utils import activations_fxn as activations
 from utils import common_loss as loss
 
 class LogisticRegressionModel(nn.Module):
-    def __init__(self, input_dim, output_dim):
+    def __init__(self, num_features,num_classes):
         super(LogisticRegressionModel, self).__init__()
-        self.linear = nn.Linear(input_dim, output_dim)
+        self.weights = nn.Parameter(torch.zeros(num_features, num_classes, dtype=torch.float32))
+        self.bias = nn.Parameter(torch.zeros(num_classes, dtype=torch.float32))
 
-    def forward(self, x):
-        out = self.linear(x)
-        return out
+        print(f'Lecun initialization SD: {1/num_classes}')
+        self.weights = nn.Parameter(torch.nn.init.normal_(self.weights, mean=0, std=1/num_classes))
+        self.bias = nn.Parameter(torch.nn.init.normal_(self.bias, mean=0, std=1/num_classes))
 
-class FeedForwardNeuralNetworkModel(nn.Module):
-  def __init__(self, input_dim, hidden_dim, output_dim):
-    super(FeedForwardNeuralNetworkModel, self).__init__()
-
-    #Linear Function
-    self.fc1 = nn.Linear(input_dim, hidden_dim)
-
-    # Non Linearity
-    self.sigmoid = activations.Sigmoid()
-
-    # Again a Linear Function
-    self.fc2 = nn.Linear(hidden_dim, output_dim)
-
-  def forward(self, x):
-    # Linear function #LINEAR
-    out = self.fc1(x)
-
-    # Non-linearity
-    out = self.sigmoid(out)
-
-    # Linearity
-    out = self.fc2(out)
-    return out
+    # input shape: (batch_size, num_features)
+    # output shape: (batch_size, num_classes)
+    def forward(self, inp):
+        output = torch.zeros((inp.shape[0], self.weights.shape[1]), dtype=inp.dtype, device=inp.device)
+        for i in range(inp.shape[0]):
+            # Flatten input to 1D
+            tmp = inp[i].reshape(1, -1)
+            out = torch.add(torch.matmul(tmp, self.weights), self.bias)
+            output[i] = out
+        return output

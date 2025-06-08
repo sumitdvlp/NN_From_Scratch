@@ -6,6 +6,7 @@ class ConvolutionalLayer(nn.Module):
     def __init__(self, in_channels=1, out_channels=4, kernel_size=5, stride=1, padding=None):
         super(ConvolutionalLayer, self).__init__()
         # Number of kernels: 1D
+        self.in_channels = in_channels
         ## Kernel is Square shape slider will slide across input with fixed kernel size shape
         self.out_channels = out_channels
         # Shape of kernels: 2D
@@ -168,7 +169,7 @@ class AffineAndSoftmaxLayer(nn.Module):
             # print(f'weight shape: \t {self.w.shape}')
             # print(f'bias shape: \t {self.b.shape}')
             tmp = inp[i].reshape(1,-1)
-            logits = torch.mm(tmp, self.w) + self.b
+            logits = torch.add(torch.mm(tmp, self.w),self.b)
             probas = torch.exp(logits) / torch.sum(torch.exp(logits))
             output[i] = probas
         # Return output of shape (batch_size, num_classes)

@@ -1,7 +1,8 @@
 import torch
 import torch.nn as nn
-from arch import cnn_modules
+from arch import cnn_modules,linear_based
 from utils import common_loss as loss
+from utils import activations_fxn as activations
 
 class ConvNNPytorch(nn.Module):
     def __init__(self):
@@ -56,3 +57,32 @@ class ConvNN(nn.Module):
         Returns a string representation of the CNN model.
         '''
         return f"CNN(in_channels={self.conv1.in_channels}, out_channels={self.conv1.out_channels}, kernel_size={self.conv1.kernel_size})"
+
+class FeedForwardNeuralNetworkModel(nn.Module):
+  def __init__(self, input_dim, hidden_dim, output_dim):
+    super(FeedForwardNeuralNetworkModel, self).__init__()
+
+    #Linear Function
+    self.fc1 = linear_based.LogisticRegressionModel(input_dim, hidden_dim)
+
+    # Non Linearity
+    self.sigmoid = activations.Sigmoid()
+
+    # Again a Linear Function
+    self.fc2 = nn.Linear(hidden_dim, output_dim)
+
+  def forward(self, x):
+    # Linear function #LINEAR
+    out = self.fc1(x)
+
+    # Non-linearity
+    out = self.sigmoid(out)
+
+    # Linearity
+    out = self.fc2(out)
+    return out
+  
+  def __repr__(self):
+    return f"FeedForwardNeuralNetworkModel(input_dim={self.fc1.in_features}, hidden_dim={self.fc1.out_features}, output_dim={self.fc2.out_features})"
+  def __str__(self):
+    return f"FeedForwardNeuralNetworkModel(input_dim={self.fc1.in_features}, hidden_dim={self.fc1.out_features}, output_dim={self.fc2.out_features})"

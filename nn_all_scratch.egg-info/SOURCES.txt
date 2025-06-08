@@ -4,14 +4,13 @@ all_scratch/__init__.py
 all_scratch/runner_test.py
 all_scratch/arch/__init__.py
 all_scratch/arch/cnn_modules.py
-all_scratch/arch/logisticregression.py
+all_scratch/arch/linear_based.py
 all_scratch/arch/neuralnets.py
 all_scratch/data_setup/__init__.py
 all_scratch/data_setup/minst_dataset.py
 all_scratch/data_setup/minst_openml.py
-all_scratch/deeplearning/__init__.py
-all_scratch/deeplearning/neural_network.py
 all_scratch/utils/__init__.py
+all_scratch/utils/activations_fxn.py
 all_scratch/utils/common_loss.py
 all_scratch/utils/optimizers.py
 nn_all_scratch.egg-info/PKG-INFO

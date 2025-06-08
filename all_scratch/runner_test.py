@@ -9,6 +9,7 @@ import torch.nn.functional as F
 from arch import neuralnets as nnets
 from utils import optimizers as optimizers
 import matplotlib.pyplot as plt
+import weightwatcher as ww
 
 class TestAllScratch(unittest.TestCase):
     def test_CNN(self):
@@ -150,10 +151,17 @@ class TestAllScratch(unittest.TestCase):
         model = nnets.ConvNN()
         
         loss = common_loss.CrossEntropyLoss()
-        
+        for name, param in model.named_parameters():
+            if param.requires_grad:
+                print(f'Parameter: {name}, Shape: {param.shape}')
+        print('='*50)
+        print(f'Number of parameters: {sum(p.numel() for p in model.parameters() if p.requires_grad)}')
+        print('='*50)
+
         optimizer = optimizers.CustomAdam(model.parameters(), stepsize=0.001, bias_m1=0.9, bias_m2=0.999, epsilon=10e-8, bias_correction=False)
         loss_values = []
-        for _, (images, labels) in enumerate(train_loader): 
+        for iter, (images, labels) in enumerate(train_loader): 
+                
                 model.zero_grad()
                 pred = model.forward(images)
                 ls = loss.forward(pred, labels)
@@ -164,7 +172,12 @@ class TestAllScratch(unittest.TestCase):
                 # Backward pass
                 optimizer.step()
                 # model.zero_grad()
-                
+                if iter % 50 == 0:
+                    break
+        watcher = ww.WeightWatcher(model)
+        details = watcher.analyze(plot=True)
+        print('='*50)
+        print(f'WeightWatcher details: \n{details}')
 
     def test_load(self):
          train_loader, test_loader = setup_data()
@@ -173,6 +186,41 @@ class TestAllScratch(unittest.TestCase):
             # labels is a tensor of corresponding labels for the current batch
             print(f"Batch: {batch_idx}, Input shape: {inputs.shape}, Label shape: {labels.shape}")
 
+    def test_FFNNLogistic(self):
+        """
+        Test class for FFNN Regression model.
+        """
+ 
+        train_loader, test_loader = setup_data()
+        model = nnets.FeedForwardNeuralNetworkModel(input_dim=784, hidden_dim=196, output_dim=10)
+        
+        loss = common_loss.CrossEntropyLoss()
+        
+        for name, param in model.named_parameters():
+            if param.requires_grad:
+                print(f'Parameter: {name}, Shape: {param.shape}')
+                
+        print('='*50)
+        print(f'Number of parameters: {sum(p.numel() for p in model.parameters() if p.requires_grad)}')
+        
+        optimizer = optimizers.CustomAdam(model.parameters(), stepsize=0.001, bias_m1=0.9, bias_m2=0.999, epsilon=10e-8, bias_correction=False)
+        
+        loss_values = []
+        
+        for iter, (images, labels) in enumerate(train_loader): 
+                
+                model.zero_grad()
+                pred = model.forward(images)
+                ls = loss.forward(pred, labels)
+                print('='*50)
+                print(f'Loss: \t {ls.item()}')
+                loss_values.append(ls.item())
+                print('='*50)
+                # Backward pass
+                optimizer.step()
+                # model.zero_grad()
+                if iter % 50 == 0:
+                    break
 
         
 
