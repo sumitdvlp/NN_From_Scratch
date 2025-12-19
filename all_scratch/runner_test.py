@@ -9,8 +9,8 @@ import torch.nn.functional as F
 from arch import neuralnets as nnets
 from utils import optimizers as optimizers
 import matplotlib.pyplot as plt
-import weightwatcher as ww
-from torchviz import make_dot, make_dot_from_trace
+# import weightwatcher as ww
+# from torchviz import make_dot, make_dot_from_trace
 
 class TestAllScratch(unittest.TestCase):
     def test_CNN(self):
